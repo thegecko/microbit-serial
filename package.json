@@ -1,0 +1,27 @@
+{
+  "name": "microbit-serial",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "",
+  "repository": "https://github.com/thegecko/microbit-serial",
+  "scripts": {
+    "prepare": "yarn build",
+    "build": "webpack --mode production",
+    "watch": "webpack serve --open",
+    "clean": "git clean -f -x ./dist"
+  },
+  "dependencies": {
+    "@types/web-bluetooth": "^0.0.14",
+    "@types/w3c-web-usb": "^1.0.4",
+    "dapjs": "^2.3.0",
+    "microbit-web-bluetooth": "^0.6.0"
+  },
+  "devDependencies": {
+    "ts-loader": "^9.3.0",
+    "typescript": "^3.9.6",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.9.0"
+  }
+}
