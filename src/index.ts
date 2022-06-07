@@ -20,7 +20,7 @@ const updateUI = () => {
     flashButtonEl.disabled = !usbDevice;
     bleButtonEl.disabled = !friendlyName;
     flashButtonEl.innerText = 'Flash Device' + (friendlyName ? ` [${friendlyName}]` : '');
-    bleButtonEl.innerText = 'Connect Device' + (friendlyName ? ` [${friendlyName}]` : '');
+    bleButtonEl.innerText = 'Connect Bluetooth Device' + (friendlyName ? ` [${friendlyName}]` : '');
 }
 
 const getFriendlyName = async (usbDevice: USBDevice): Promise<string> => {
@@ -76,6 +76,7 @@ flashButtonEl.addEventListener('click', async () => {
         await target.connect();
         await target.flash(buffer);
         await target.disconnect();
+        resultEl.innerText = '';
         writeLine("Flash complete!");
     } catch (error) {
         writeLine(error);
