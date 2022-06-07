@@ -3,10 +3,10 @@ name: ci
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
           git stash save
           git checkout gh-pages
           git pull
-          git merge master --no-commit -X theirs
+          git merge main --no-commit -X theirs
           git checkout stash -- .
           git commit --allow-empty --message "Automatic Deployment"
           git push
