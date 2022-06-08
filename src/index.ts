@@ -30,9 +30,7 @@ const updateDevice = async (device?: USBDevice | undefined) => {
     usbDevice = device;
     friendlyName = usbDevice ? await getFriendlyName(usbDevice) : undefined;
 
-    flashButtonEl.disabled = !usbDevice;
-    bleButtonEl.disabled = !usbDevice;
-    flashButtonEl.innerText = 'Flash Device' + (friendlyName ? ` [${friendlyName}]` : '');
+    flashButtonEl.disabled = bleButtonEl.disabled = !usbDevice;
     bleButtonEl.innerText = 'Connect Bluetooth Device' + (friendlyName ? ` [${friendlyName}]` : '');
 }
 
