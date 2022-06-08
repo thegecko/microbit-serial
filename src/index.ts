@@ -1,9 +1,16 @@
 import { WebUSB, DAPLink } from 'dapjs';
 import { getServices } from 'microbit-web-bluetooth';
-import { MicroBit } from './microbit';
+import { getFriendlyName } from './microbit';
+
+const VENDOR_ID = 3368;
+const PRODUCT_ID = 516;
+const MICROBIT_PREFIX = 'BBC micro:bit';
+const FLASH_FILE = 'microbit-DEVICE-PRODUCTION.hex';
+const SERVICE_UUID = 'e95d0753-251d-470a-a062-fa1922dfa9a8';
 
 const usbNavigator = navigator && navigator.usb;
 const bleNavigator = navigator && navigator.bluetooth;
+
 const usbButtonEl = document.getElementById('usb-button') as HTMLButtonElement;
 const flashButtonEl = document.getElementById('flash-button') as HTMLButtonElement;
 const bleButtonEl = document.getElementById('ble-button') as HTMLButtonElement;
@@ -12,28 +19,22 @@ const resultEl = document.getElementById('result') as HTMLDivElement;
 let usbDevice: USBDevice | undefined;
 let friendlyName: string | undefined;
 
-const writeLine = (message: string) => {
+const log = (message: string, clearFirst = false) => {
+    if (clearFirst) {
+        resultEl.innerText = '';
+    }
     resultEl.innerText += `${message}\n`;
 }
 
-const updateUI = () => {
+const updateDevice = async (device?: USBDevice | undefined) => {
+    usbDevice = device;
+    friendlyName = usbDevice ? await getFriendlyName(usbDevice) : undefined;
+
     flashButtonEl.disabled = !usbDevice;
-    bleButtonEl.disabled = !friendlyName;
+    bleButtonEl.disabled = !usbDevice;
     flashButtonEl.innerText = 'Flash Device' + (friendlyName ? ` [${friendlyName}]` : '');
     bleButtonEl.innerText = 'Connect Bluetooth Device' + (friendlyName ? ` [${friendlyName}]` : '');
 }
-
-const getFriendlyName = async (usbDevice: USBDevice): Promise<string> => {
-    const transport = new WebUSB(usbDevice);
-    const processor = new MicroBit(transport);
-
-    try {
-        await processor.connect();
-        return processor.microbitFriendlyName();
-    } finally {
-        await processor.disconnect();
-    }
-};
 
 usbButtonEl.addEventListener('click', async () => {
     if (!usbNavigator) {
@@ -41,17 +42,16 @@ usbButtonEl.addEventListener('click', async () => {
     }
 
     try {
-        usbDevice = await usbNavigator.requestDevice({
+        const device = await usbNavigator.requestDevice({
             filters: [{
-                vendorId: 3368,
-                productId: 516
+                vendorId: VENDOR_ID,
+                productId: PRODUCT_ID
             }]
         });
 
-        friendlyName = await getFriendlyName(usbDevice);
-        updateUI();
+        updateDevice(device);
     } catch (error) {
-        writeLine(error);
+        log(error);
     }
 });
 
@@ -60,26 +60,25 @@ flashButtonEl.addEventListener('click', async () => {
         return;
     }
 
-    const response = await fetch('microbit-DEVICE-PRODUCTION.hex');
+    const response = await fetch(FLASH_FILE);
     const buffer = await response.arrayBuffer();
 
     const transport = new WebUSB(usbDevice);
     const target = new DAPLink(transport);
 
     target.on(DAPLink.EVENT_PROGRESS, progress => {
-        resultEl.innerText = `${Math.ceil(progress * 100)}%`;
+        log(`Flashing ${Math.ceil(progress * 100)}%`, true);
     });
 
     try {
-        // Push binary to board
-        writeLine(`Flashing binary file ${buffer.byteLength} words long...`);
+        // Flash binary to board
         await target.connect();
         await target.flash(buffer);
         await target.disconnect();
-        resultEl.innerText = '';
-        writeLine("Flash complete!");
+
+        log("Flash complete!", true);
     } catch (error) {
-        writeLine(error);
+        log(error);
     }
 });
 
@@ -89,48 +88,40 @@ bleButtonEl.addEventListener('click', async () => {
     }
 
     try {
+        const namePrefix = MICROBIT_PREFIX + (friendlyName ? ` [${friendlyName}]` : '');
         const bleDevice = await bleNavigator.requestDevice({
-            filters: [{
-                namePrefix: `BBC micro:bit [${friendlyName}]`
-            }],
-            optionalServices: [
-                'e95d0753-251d-470a-a062-fa1922dfa9a8'
-            ]
+            filters: [{ namePrefix }],
+            optionalServices: [ SERVICE_UUID ]
         });
 
         const services = await getServices(bleDevice);
 
         if (services.accelerometerService) {
             services.accelerometerService.addEventListener('accelerometerdatachanged', ev => {
-                resultEl.innerText = '';
-                writeLine(`x: ${ev.detail.x}`);
-                writeLine(`y: ${ev.detail.y}`);
-                writeLine(`z: ${ev.detail.z}`);
+                log(`x: ${ev.detail.x}`, true);
+                log(`y: ${ev.detail.y}`);
+                log(`z: ${ev.detail.z}`);
             });
         }
     } catch (error) {
-        writeLine(error);
+        log(error);
     }
 });
 
 window.addEventListener('load', () => {
-    updateUI();
-
     if (!usbNavigator) {
         return;
     }
 
     usbNavigator.addEventListener('connect', async ev => {
-        usbDevice = ev.device;            
-        friendlyName = await getFriendlyName(usbDevice);
-        updateUI();
+        if (ev.device.vendorId === VENDOR_ID && ev.device.productId === PRODUCT_ID) {
+            updateDevice(ev.device);
+        }
     });
 
     usbNavigator.addEventListener('disconnect', ev => {
         if (ev.device === usbDevice) {
-            usbDevice = undefined;
-            friendlyName = undefined;
-            updateUI();
+            updateDevice(undefined);
         }
     });
 });
