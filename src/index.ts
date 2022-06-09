@@ -1,6 +1,7 @@
 import { WebUSB, DAPLink } from 'dapjs';
 import { getServices } from 'microbit-web-bluetooth';
-import { getFriendlyName } from './microbit';
+import { LedMatrix } from 'microbit-web-bluetooth/types/services/led';
+import { getFriendlyName, getPairPattern } from './microbit';
 
 const VENDOR_ID = 3368;
 const PRODUCT_ID = 516;
@@ -15,6 +16,7 @@ const usbButtonEl = document.getElementById('usb-button') as HTMLButtonElement;
 const flashButtonEl = document.getElementById('flash-button') as HTMLButtonElement;
 const bleButtonEl = document.getElementById('ble-button') as HTMLButtonElement;
 const resultEl = document.getElementById('result') as HTMLDivElement;
+const matrixEl = document.getElementById('matrix') as HTMLDivElement;
 
 let usbDevice: USBDevice | undefined;
 let friendlyName: string | undefined;
@@ -26,12 +28,29 @@ const log = (message: string, clearFirst = false) => {
     resultEl.innerText += `${message}\n`;
 }
 
+const updateMatrix = (state?: LedMatrix) => {
+    matrixEl.innerHTML = '';
+    if (state) {
+        for (let i = 0; i < 5; i ++) {
+            for (let j = 0; j < 5; j ++) {
+                const led = document.createElement('div');
+                led.id = `led-${i}-${j}`;
+                led.className = state[i][j] ? 'led-on' : 'led-off';
+                matrixEl.appendChild(led);
+            }
+        }
+    }
+};
+
 const updateDevice = async (device?: USBDevice | undefined) => {
+    resultEl.innerText = '';
     usbDevice = device;
     friendlyName = usbDevice ? await getFriendlyName(usbDevice) : undefined;
+    const matrix = usbDevice ? getPairPattern(friendlyName) : undefined;
 
     flashButtonEl.disabled = bleButtonEl.disabled = !usbDevice;
     bleButtonEl.innerText = 'Connect Bluetooth Device' + (friendlyName ? ` [${friendlyName}]` : '');
+    updateMatrix(matrix);
 }
 
 usbButtonEl.addEventListener('click', async () => {
@@ -74,7 +93,7 @@ flashButtonEl.addEventListener('click', async () => {
         await target.flash(buffer);
         await target.disconnect();
 
-        log("Flash complete!", true);
+        log('Flash complete!', true);
     } catch (error) {
         log(error);
     }
