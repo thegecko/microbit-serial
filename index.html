@@ -10,6 +10,10 @@
         h1 { font-weight: 400; }
         button { font-size: 12px; color: inherit; margin: 20px auto; border: 0px; background-color: #1b679c; height: 30px; padding: 0 30px; border-radius: 4px; cursor: pointer; outline: none; }
         button:disabled { color: #ccc; background-color: #aaa; cursor: initial; }
+        #matrix { margin: auto; display: flex; flex-wrap: wrap; width: 155px; background-color: black; }
+        #matrix > div { width: 9px; height: 17px; margin: 7px 11px; border-radius: 2px; }
+        .led-off { background: #333; }
+        .led-on { background: #f88; box-shadow: 0 0 8px 2px #ff1777; }
 	</style>
 </head>
 <body>
@@ -17,6 +21,7 @@
     <button id="usb-button">Select USB Device</button>
     <button id="flash-button" disabled>Flash Device</button>
     <button id="ble-button" disabled>Connect Bluetooth Device</button>
+    <div id="matrix"></div>
     <div id="result"></div>
     <script type="text/javascript" src="dist/index.js"></script>
 </body>
